@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package, MapPin, AlertTriangle, Image, Settings, ArrowLeft, List, Grid3X3, ChevronDown, ChevronRight, Wrench, Zap, Cog, Droplets, Layers, Plus, ArrowRight, History, ShoppingCart } from 'lucide-react';
+import { Search, Package, MapPin, AlertTriangle, Image, Settings, ArrowLeft, List, Grid3X3, ChevronDown, ChevronRight, Wrench, Zap, Cog, Droplets, Layers, Plus, ArrowRight, History, ShoppingCart, ArrowUpDown, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import { InventoryItem } from '../types/inventory';
 import { inventoryApi } from '../services/api';
 import { AddItemModal } from './AddItemModal';
@@ -23,6 +23,8 @@ export function ViewerMode({ onBackToEditor }: ViewerModeProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'critical'>('all');
   const [currentView, setCurrentView] = useState<'list' | 'categories'>('list');
+  const [sortBy, setSortBy] = useState<'nombre' | 'codigo' | 'ubicacion'>('nombre');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -63,6 +65,15 @@ export function ViewerMode({ onBackToEditor }: ViewerModeProps) {
       (stockFilter === 'critical' && item.stock <= criticalThreshold);
     
     return matchesSearch && matchesFilter;
+  }).sort((a, b) => {
+    const aValue = String(a[sortBy]).toLowerCase();
+    const bValue = String(b[sortBy]).toLowerCase();
+    
+    if (sortOrder === 'asc') {
+      return aValue.localeCompare(bValue);
+    } else {
+      return bValue.localeCompare(aValue);
+    }
   });
 
   const getStockStatus = (stock: number, item: InventoryItem) => {
@@ -236,13 +247,9 @@ export function ViewerMode({ onBackToEditor }: ViewerModeProps) {
       
       // Actualizar el stock del material
       const newStock = selectedMaterialForExit.stock - exitData.quantity;
-      const updatedMaterial = { ...selectedMaterialForExit, stock: newStock };
       
-      // Aquí deberías actualizar el inventario también
-      // Por ahora solo actualizamos el estado local
-      setItems(prev => prev.map(item => 
-        item.id === selectedMaterialForExit.id ? updatedMaterial : item
-      ));
+      // Actualizar el stock en el inventario usando la API
+      await inventoryApi.updateStock(selectedMaterialForExit.id, newStock);
       
       setIsExitModalOpen(false);
       setSelectedMaterialForExit(null);
@@ -334,6 +341,34 @@ export function ViewerMode({ onBackToEditor }: ViewerModeProps) {
               <option value="low">Stock bajo (≤4)</option>
               <option value="critical">Stock crítico (≤1)</option>
             </select>
+          </div>
+          
+          <div className="flex justify-center">
+            <div className="flex items-center space-x-4 bg-white rounded-xl p-2 shadow-sm border border-slate-200">
+              <div className="flex items-center space-x-2">
+                <ArrowUpDown className="h-5 w-5 text-slate-600" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="px-4 py-2 text-lg border-0 bg-transparent focus:ring-0 focus:outline-none"
+                >
+                  <option value="nombre">Nombre</option>
+                  <option value="codigo">Código</option>
+                  <option value="ubicacion">Ubicación</option>
+                </select>
+              </div>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                title={sortOrder === 'asc' ? 'Cambiar a descendente' : 'Cambiar a ascendente'}
+              >
+                {sortOrder === 'asc' ? (
+                  <ArrowUp className="h-5 w-5 text-slate-600" />
+                ) : (
+                  <ArrowDown className="h-5 w-5 text-slate-600" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

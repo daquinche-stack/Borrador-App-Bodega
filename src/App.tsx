@@ -11,6 +11,7 @@ import { ViewerMode } from './components/ViewerMode';
 import { SearchBar } from './components/SearchBar';
 import { StatsGrid } from './components/StatsGrid';
 import { StockCriticalityCharts } from './components/StockCriticalityCharts';
+import { ReportsModal } from './components/ReportsModal';
 import { InventoryItem, NewInventoryItem } from './types/inventory';
 import { AddItemModal } from './components/AddItemModal';
 import { inventoryApi } from './services/api';
@@ -24,6 +25,7 @@ function App() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isClearAllModalOpen, setIsClearAllModalOpen] = useState(false);
+  const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -34,6 +36,8 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'critical'>('all');
   const [currentView, setCurrentView] = useState<'list' | 'categories'>('list');
+  const [sortBy, setSortBy] = useState<'nombre' | 'codigo' | 'ubicacion'>('nombre');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadInventory();
@@ -167,6 +171,15 @@ function App() {
       (stockFilter === 'critical' && item.stock <= criticalThreshold);
     
     return matchesSearch && matchesFilter;
+  }).sort((a, b) => {
+    const aValue = String(a[sortBy]).toLowerCase();
+    const bValue = String(b[sortBy]).toLowerCase();
+    
+    if (sortOrder === 'asc') {
+      return aValue.localeCompare(bValue);
+    } else {
+      return bValue.localeCompare(aValue);
+    }
   });
 
   if (loading) {
@@ -202,6 +215,13 @@ function App() {
               <span>Modo Espectador</span>
             </button>
             <button
+              onClick={() => setIsReportsModalOpen(true)}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Reportes</span>
+            </button>
+            <button
               onClick={() => setIsClearAllModalOpen(true)}
               className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors font-medium"
             >
@@ -234,6 +254,10 @@ function App() {
           onSearchChange={setSearchTerm}
           stockFilter={stockFilter}
           onFilterChange={setStockFilter}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          sortOrder={sortOrder}
+          onSortOrderChange={setSortOrder}
         />
 
         {currentView === 'categories' ? (
@@ -322,6 +346,11 @@ function App() {
           onConfirm={handleClearAll}
           isClearing={isClearing}
           totalItems={items.length}
+        />
+
+        <ReportsModal
+          isOpen={isReportsModalOpen}
+          onClose={() => setIsReportsModalOpen(false)}
         />
       </div>
     </Layout>
